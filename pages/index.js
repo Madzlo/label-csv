@@ -12,6 +12,7 @@ const USERS = {
 
 export default function Home() {
   const [csvUrl, setCsvUrl] = useState(null);
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -21,31 +22,33 @@ export default function Home() {
     }
   }, []);
 
-  const parseAddress = (fullAddress) => {
-    const [street, cityStateZip] = fullAddress.split("\n");
-    if (!street || !cityStateZip) return {};
-
-    const [cityState, zip] = cityStateZip.split(",").map((s) => s.trim());
-    const [city, state] = cityState.split(" ");
-
-    return {
-      street,
-      city,
-      state,
-      zip,
-      country: "US",
-    };
+  const parseWithLibpostal = async (address) => {
+    const encoded = encodeURIComponent(address);
+    try {
+      const res = await fetch(\`https://parser.digital-detective.net/parser?address=\${encoded}\`);
+      if (!res.ok) return {};
+      const data = await res.json();
+      return {
+        street: data.road || "",
+        city: data.city || "",
+        state: data.state || "",
+        zip: data.postcode || "",
+      };
+    } catch (e) {
+      return {};
+    }
   };
 
   const generatePhone = () => {
-    return `${Math.floor(200 + Math.random() * 800)}-${200 + Math.floor(Math.random() * 800)}-${1000 + Math.floor(Math.random() * 9000)}`;
+    return \`\${Math.floor(200 + Math.random() * 800)}-\${200 + Math.floor(Math.random() * 800)}-\${1000 + Math.floor(Math.random() * 9000)}\`;
   };
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     const reader = new FileReader();
 
-    reader.onload = (evt) => {
+    reader.onload = async (evt) => {
+      setLoading(true);
       const bstr = evt.target.result;
       const workbook = XLSX.read(bstr, { type: "binary" });
       const sheetName = workbook.SheetNames[0];
@@ -60,15 +63,18 @@ export default function Home() {
         "PackageDescription", "PackageReference1", "PackageReference2"
       ];
 
-      const rows = data.slice(1).map((row) => {
-        const toName = row[1];
-        const toAddress = parseAddress(row[2] || "");
-        const fromName = row[7];
-        const fromAddress = parseAddress(row[8] || "");
-        const useAltSize = Math.random() < 0.5;
-        const [length, width, height] = useAltSize ? [5, 7, 1] : [1, 2, 4];
+      const rows = [];
 
-        return [
+      for (const row of data.slice(1)) {
+        const toName = row[1];
+        const toAddressRaw = row[2] || "";
+        const fromName = row[7];
+        const fromAddressRaw = row[8] || "";
+
+        const toAddress = await parseWithLibpostal(toAddressRaw);
+        const fromAddress = await parseWithLibpostal(fromAddressRaw);
+
+        rows.push([
           "USPS Express",
           fromName,
           generatePhone(),
@@ -88,23 +94,24 @@ export default function Home() {
           toAddress.state,
           toAddress.zip,
           "US",
-          length,
-          width,
-          height,
+          5,
+          7,
+          1,
           1,
           "",
           "",
           ""
-        ];
-      });
+        ]);
+      }
 
       const csvContent = [header, ...rows]
-        .map((e) => e.map((v) => `"${v ?? ""}"`).join(","))
+        .map((e) => e.map((v) => `"\${v ?? ""}"`).join(","))
         .join("\n");
 
       const blob = new Blob([csvContent], { type: "text/csv" });
       const url = URL.createObjectURL(blob);
       setCsvUrl(url);
+      setLoading(false);
     };
 
     reader.readAsBinaryString(file);
@@ -112,8 +119,9 @@ export default function Home() {
 
   return (
     <div style={{ padding: 20 }}>
-      <h1>Генератор лейблов CSV</h1>
+      <h1>Генератор лейблов CSV (с libpostal)</h1>
       <input type="file" accept=".xlsx,.xls" onChange={handleFileUpload} />
+      {loading && <p>⏳ Идёт обработка адресов...</p>}
       {csvUrl && (
         <a href={csvUrl} download="shipments.csv">
           <button>Скачать CSV</button>
