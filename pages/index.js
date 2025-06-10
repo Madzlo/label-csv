@@ -38,7 +38,7 @@ export default function Home() {
   };
 
   const generatePhone = () => {
-    return \`\${Math.floor(200 + Math.random() * 800)}-\${200 + Math.floor(Math.random() * 800)}-\${1000 + Math.floor(Math.random() * 9000)}\`;
+    return `${Math.floor(200 + Math.random() * 800)}-${200 + Math.floor(Math.random() * 800)}-${1000 + Math.floor(Math.random() * 9000)}`;
   };
 
   const handleFileUpload = async (e) => {
