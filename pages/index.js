@@ -25,7 +25,7 @@ export default function Home() {
   const parseWithLibpostal = async (address) => {
     const encoded = encodeURIComponent(address);
     try {
-      const res = await fetch(\`https://parser.digital-detective.net/parser?address=\${encoded}\`);
+      const res = await fetch(`https://parser.digital-detective.net/parser?address=${encoded}`);
       if (!res.ok) return {};
       const data = await res.json();
       return {
@@ -40,7 +40,7 @@ export default function Home() {
   };
 
   const generatePhone = () => {
-    return \`\${Math.floor(200 + Math.random() * 800)}-\${200 + Math.floor(Math.random() * 800)}-\${1000 + Math.floor(Math.random() * 9000)}\`;
+    return `${Math.floor(200 + Math.random() * 800)}-${200 + Math.floor(Math.random() * 800)}-${1000 + Math.floor(Math.random() * 9000)}`;
   };
 
   const handleFileUpload = async (e) => {
@@ -105,7 +105,7 @@ export default function Home() {
       }
 
       const csvContent = [header, ...rows]
-        .map((e) => e.map((v) => `"\${v ?? ""}"`).join(","))
+        .map((e) => e.map((v) => `"${v ?? ""}"`).join(","))
         .join("\n");
 
       const blob = new Blob([csvContent], { type: "text/csv" });
