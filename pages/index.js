@@ -22,23 +22,6 @@ export default function Home() {
     }
   }, []);
 
-  const parseWithLibpostal = async (address) => {
-    const encoded = encodeURIComponent(address);
-    try {
-      const res = await fetch(`https://parser.digital-detective.net/parser?address=${encoded}`);
-      if (!res.ok) return {};
-      const data = await res.json();
-      return {
-        street: data.road || "",
-        city: data.city || "",
-        state: data.state || "",
-        zip: data.postcode || "",
-      };
-    } catch (e) {
-      return {};
-    }
-  };
-
   const generatePhone = () => {
     return `${Math.floor(200 + Math.random() * 800)}-${200 + Math.floor(Math.random() * 800)}-${1000 + Math.floor(Math.random() * 9000)}`;
   };
@@ -67,40 +50,24 @@ export default function Home() {
 
       for (const row of data.slice(1)) {
         const toName = row[1];
-        const toAddressRaw = row[2] || "";
+        const toAddress = row[2] || "";
         const fromName = row[7];
-        const fromAddressRaw = row[8] || "";
-
-        const toAddress = await parseWithLibpostal(toAddressRaw);
-        const fromAddress = await parseWithLibpostal(fromAddressRaw);
+        const fromAddress = row[8] || "";
 
         rows.push([
-          "USPS Express",
-          fromName,
-          generatePhone(),
-          "",
-          fromAddress.street,
-          "",
-          fromAddress.city,
-          fromAddress.state,
-          fromAddress.zip,
-          "US",
-          toName,
-          generatePhone(),
-          "",
-          toAddress.street,
-          "",
-          toAddress.city,
-          toAddress.state,
-          toAddress.zip,
-          "US",
-          5,
-          7,
-          1,
-          1,
-          "",
-          "",
-          ""
+          "USPS Express",             // ServiceName
+          fromName,                  // FromSenderName
+          generatePhone(),           // FromPhone
+          "",                        // FromCompany
+          fromAddress,               // FromStreet1
+          "", "", "", "", "US",      // FromStreet2 ... FromCountry
+          toName,                    // ToRecipientName
+          generatePhone(),           // ToPhone
+          "",                        // ToCompany
+          toAddress,                 // ToStreet1
+          "", "", "", "", "US",      // ToStreet2 ... ToCountry
+          5, 7, 1, 1,                // Dimensions + Weight
+          "", "", ""                 // PackageDescription ...
         ]);
       }
 
@@ -119,9 +86,9 @@ export default function Home() {
 
   return (
     <div style={{ padding: 20 }}>
-      <h1>Генератор лейблов CSV (с libpostal)</h1>
+      <h1>Генератор CSV по шаблону (без парсинга)</h1>
       <input type="file" accept=".xlsx,.xls" onChange={handleFileUpload} />
-      {loading && <p>⏳ Идёт обработка адресов...</p>}
+      {loading && <p>⏳ Обработка...</p>}
       {csvUrl && (
         <a href={csvUrl} download="shipments.csv">
           <button>Скачать CSV</button>
