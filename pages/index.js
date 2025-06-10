@@ -99,7 +99,7 @@ export default function Home() {
       });
 
       const csvContent = [header, ...rows]
-        .map((e) => e.map((v) => `"\${v ?? ""}"`).join(","))
+        .map((e) => e.map((v) => `"${v ?? ""}"`).join(","))
         .join("\n");
 
       const blob = new Blob([csvContent], { type: "text/csv" });
